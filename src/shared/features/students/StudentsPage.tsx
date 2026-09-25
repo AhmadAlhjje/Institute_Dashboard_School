@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Plus, Smartphone } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -7,7 +7,6 @@ import { studentsApi, type StudentListParams } from '../../api/endpoints/people'
 import type { StudentListItem } from '../../api/types';
 import { useListParams } from '../../hooks/use-list-params';
 import { useGradeOptions } from '../../hooks/use-lookups';
-import { formatDateTime } from '../../lib/format';
 import { useApi } from '../../platform/platform-context';
 import { Button } from '../../ui/button';
 import { SearchInput } from '../../ui/controls';
@@ -27,7 +26,6 @@ const SORTS = {
   newest: { sort: 'createdAt', order: 'desc' },
   oldest: { sort: 'createdAt', order: 'asc' },
   name: { sort: 'name', order: 'asc' },
-  lastLogin: { sort: 'lastLoginAt', order: 'desc' },
 } as const;
 
 export function StudentStatusBadges({ status, archived }: { status: string; archived: boolean }) {
@@ -92,30 +90,10 @@ export function StudentsPage() {
       hideBelow: 'md',
     },
     {
-      key: 'device',
-      header: t('students.device'),
-      hideBelow: 'lg',
-      cell: (row) =>
-        row.device ? (
-          <span className="inline-flex items-center gap-1.5 text-sm">
-            <Smartphone className="size-4 text-secondary" aria-hidden />
-            {row.device.model ?? row.device.platform}
-          </span>
-        ) : (
-          <span className="text-xs text-secondary">{t('students.noDevice')}</span>
-        ),
-    },
-    {
       key: 'opened',
       header: t('students.openedSubjects'),
       hideBelow: 'md',
       cell: (row) => <span className="ltr-nums">{`${row.openSubjectsCount} / ${row.openTeachersCount}`}</span>,
-    },
-    {
-      key: 'lastLogin',
-      header: t('students.lastLogin'),
-      hideBelow: 'lg',
-      cell: (row) => (row.lastLoginAt ? formatDateTime(row.lastLoginAt) : t('students.neverLoggedIn')),
     },
     {
       key: 'status',

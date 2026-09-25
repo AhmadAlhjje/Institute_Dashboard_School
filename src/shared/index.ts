@@ -7,7 +7,6 @@ export type * from './api/types';
 export { RequireAuth } from './auth/RequireAuth';
 export { useAuth } from './auth/auth-context';
 export { InstituteOverview } from './features/dashboard/InstituteOverview';
-export { ResetPasswordModal } from './features/students/ResetPasswordModal';
 export { useListParams } from './hooks/use-list-params';
 export { runAction } from './lib/actions';
 export { cn } from './lib/cn';

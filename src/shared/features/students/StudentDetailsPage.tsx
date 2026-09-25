@@ -1,75 +1,24 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, KeyRound, Pencil, Power, PowerOff, Smartphone, SmartphoneNfc } from 'lucide-react';
+import { Pencil, Power, PowerOff, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { studentsApi } from '../../api/endpoints/people';
 import type { StudentDetails } from '../../api/types';
-import { useAuth } from '../../auth/auth-context';
 import { runAction } from '../../lib/actions';
-import { formatDate, formatDateTime } from '../../lib/format';
+import { formatDate } from '../../lib/format';
 import { useApi } from '../../platform/platform-context';
 import { Button } from '../../ui/button';
 import { ActionsMenu, Tabs } from '../../ui/controls';
 import { QueryView } from '../../ui/data-table';
-import { Badge, Card, CardHeader, DetailList, PageHeader } from '../../ui/display';
+import { Card, CardHeader, DetailList, PageHeader } from '../../ui/display';
 import { EmptyState } from '../../ui/feedback';
 import { ConfirmDialog } from '../../ui/overlay';
 import { StudentAccessPanel } from '../access/StudentAccessPanel';
-import { ResetPasswordModal } from './ResetPasswordModal';
-import { StudentActivityPanel } from './StudentActivityPanel';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentStatusBadges } from './StudentsPage';
 
-type Dialog = 'edit' | 'password' | 'disable' | 'archive' | 'resetDevice' | null;
-
-function DeviceCard({ student, onReset }: { student: StudentDetails; onReset?: () => void }) {
-  const { t } = useTranslation();
-  const device = student.device;
-  return (
-    <Card>
-      <CardHeader
-        title={t('students.device')}
-        actions={
-          device && onReset ? (
-            <Button variant="outline" size="sm" icon={<SmartphoneNfc className="size-4" />} onClick={onReset}>
-              {t('students.resetDevice')}
-            </Button>
-          ) : undefined
-        }
-      />
-      <div className="p-5">
-        {device ? (
-          <DetailList
-            items={[
-              {
-                label: t('students.devicePlatform'),
-                value: device.platform === 'ANDROID' ? 'Android' : 'iOS',
-              },
-              { label: t('students.deviceModel'), value: device.model ?? '—' },
-              {
-                label: t('students.appVersion'),
-                value: <span className="ltr-nums">{device.appVersion ?? '—'}</span>,
-              },
-              {
-                label: t('students.boundAt'),
-                value: formatDateTime(device.firstSeenAt),
-              },
-              {
-                label: t('students.lastSeen'),
-                value: formatDateTime(device.lastSeenAt),
-              },
-            ]}
-          />
-        ) : (
-          <p className="flex items-center gap-2 text-sm text-secondary">
-            <Smartphone className="size-4" aria-hidden /> {t('students.noDevice')}
-          </p>
-        )}
-      </div>
-    </Card>
-  );
-}
+type Dialog = 'edit' | 'disable' | 'archive' | null;
 
 function OpenedContent({ student }: { student: StudentDetails }) {
   const { t } = useTranslation();
@@ -109,13 +58,13 @@ function OpenedContent({ student }: { student: StudentDetails }) {
   );
 }
 
-/** Student page (spec §42): profile, device, opened content, access management, activity. */
+/** Student page (owner): profile, opened content and access management. Device details, sessions
+ * and password resets are handled by the super admin. */
 export function StudentDetailsPage() {
   const { t } = useTranslation();
   const { id = '' } = useParams();
   const api = useApi();
   const students = studentsApi(api);
-  const { can } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('profile');
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -147,11 +96,6 @@ export function StudentDetailsPage() {
                 <ActionsMenu
                   actions={[
                     {
-                      label: t('students.resetPassword'),
-                      icon: <KeyRound className="size-4" />,
-                      onSelect: () => setDialog('password'),
-                    },
-                    {
                       label: data.status === 'ACTIVE' ? t('students.disable') : t('students.enable'),
                       icon: data.status === 'ACTIVE' ? <PowerOff className="size-4" /> : <Power className="size-4" />,
                       tone: data.status === 'ACTIVE' ? 'danger' : 'default',
@@ -161,14 +105,8 @@ export function StudentDetailsPage() {
                           : runAction(() => students.enable(id), t('common.saved'), apply),
                     },
                     {
-                      label: t('students.resetDevice'),
-                      icon: <SmartphoneNfc className="size-4" />,
-                      hidden: !can('device.reset') || !data.device,
-                      onSelect: () => setDialog('resetDevice'),
-                    },
-                    {
                       label: data.archived ? t('common.restore') : t('common.archive'),
-                      icon: data.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />,
+                      icon: data.archived ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />,
                       tone: data.archived ? 'default' : 'danger',
                       onSelect: () =>
                         data.archived
@@ -211,17 +149,9 @@ export function StudentDetailsPage() {
                             value: formatDate(data.createdAt),
                           },
                           {
-                            label: t('students.lastLogin'),
-                            value: data.lastLoginAt ? formatDateTime(data.lastLoginAt) : t('students.neverLoggedIn'),
-                          },
-                          {
                             label: t('students.source'),
                             value:
                               data.source === 'SELF_REGISTERED' ? t('students.sourceSelf') : t('students.sourceStaff'),
-                          },
-                          {
-                            label: t('students.activeSessions'),
-                            value: <Badge>{data.activeSessions}</Badge>,
                           },
                           ...(data.notes
                             ? [
@@ -234,10 +164,6 @@ export function StudentDetailsPage() {
                         ]}
                       />
                     </Card>
-                    <DeviceCard
-                      student={data}
-                      onReset={can('device.reset') ? () => setDialog('resetDevice') : undefined}
-                    />
                     <OpenedContent student={data} />
                   </div>
                 ),
@@ -247,26 +173,10 @@ export function StudentDetailsPage() {
                 label: t('students.tabs.access'),
                 content: <StudentAccessPanel studentId={id} />,
               },
-              ...(can('student.activity')
-                ? [
-                    {
-                      value: 'activity',
-                      label: t('students.tabs.activity'),
-                      content: <StudentActivityPanel studentId={id} />,
-                    },
-                  ]
-                : []),
             ]}
           />
 
           <StudentFormModal open={dialog === 'edit'} onOpenChange={close} student={data} onSaved={apply} />
-          <ResetPasswordModal
-            open={dialog === 'password'}
-            onOpenChange={close}
-            title={t('students.resetPassword')}
-            successMessage={t('students.resetPasswordDone')}
-            onSubmit={(password) => students.resetPassword(id, password)}
-          />
           <ConfirmDialog
             open={dialog === 'disable'}
             onOpenChange={close}
@@ -282,15 +192,6 @@ export function StudentDetailsPage() {
             body={t('students.archiveConfirm')}
             confirmLabel={t('common.archive')}
             onConfirm={() => students.archive(id).then(apply)}
-          />
-          <ConfirmDialog
-            open={dialog === 'resetDevice'}
-            onOpenChange={close}
-            title={t('students.resetDeviceTitle')}
-            body={t('students.resetDeviceBody')}
-            confirmLabel={t('students.resetDevice')}
-            successMessage={t('students.resetDeviceDone')}
-            onConfirm={() => students.resetDevice(id).then(apply)}
           />
         </>
       )}

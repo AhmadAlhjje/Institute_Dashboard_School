@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -139,21 +139,19 @@ function renderStudentPage(role: 'OWNER' | 'SUPER_ADMIN') {
   return api;
 }
 
-describe('student page permissions', () => {
-  it('does not offer device reset to the institute owner', async () => {
+describe('student page (owner)', () => {
+  it('shows the profile without device details, sessions, last login or password reset', async () => {
     renderStudentPage('OWNER');
-    expect(await screen.findByText('Pixel 8')).toBeInTheDocument();
+    expect((await screen.findAllByText('سارة')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Pixel 8')).not.toBeInTheDocument();
+    expect(screen.queryByText('الجلسات النشطة')).not.toBeInTheDocument();
+    expect(screen.queryByText('آخر دخول')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'إعادة ضبط الجهاز' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'النشاط' })).not.toBeInTheDocument();
-  });
 
-  it('offers device reset (with the required confirmation) to the super admin', async () => {
-    const api = renderStudentPage('SUPER_ADMIN');
-    await userEvent.click(await screen.findByRole('button', { name: 'إعادة ضبط الجهاز' }));
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('هل أنت متأكد من إعادة ضبط جهاز الطالب؟')).toBeInTheDocument();
-    expect(within(dialog).getByText('سيتمكن الطالب بعد ذلك من تسجيل الدخول من جهاز جديد.')).toBeInTheDocument();
-    expect(api.calls.some((c) => c.url.includes('/device/reset'))).toBe(false);
+    await userEvent.click(screen.getByRole('button', { name: 'الإجراءات' }));
+    expect(await screen.findByRole('menuitem', { name: 'حذف' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'إعادة تعيين كلمة المرور' })).not.toBeInTheDocument();
   });
 });
 
