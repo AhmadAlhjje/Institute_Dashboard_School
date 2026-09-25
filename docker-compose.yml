@@ -1,0 +1,29 @@
+# Institute owner dashboard on the VPS: http://<server>:6001 (step by step: README.md).
+#
+#   docker compose up -d --build
+#
+# Start the backend first: its docker-compose.yml creates the "edu-platform" network, on which
+# this site's Nginx forwards /api to the API (edu-api:6000). Update: git pull, then the same command.
+
+name: edu-owner-dashboard
+
+services:
+  web:
+    build: .
+    image: edu-owner-dashboard:latest
+    restart: unless-stopped
+    ports:
+      - '${DASHBOARD_PORT:-6001}:80'
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-http://edu-api:6000}
+    networks: [edu]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+networks:
+  edu:
+    name: edu-platform
+    external: true
