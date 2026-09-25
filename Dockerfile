@@ -16,7 +16,7 @@ RUN npm run build
 # ─── Serve ────────────────────────────────────────────────────────────────────
 FROM nginx:stable-alpine AS runtime
 # The backend API on the shared Docker network, and the largest upload accepted.
-ENV API_UPSTREAM=http://edu-api:6000 \
+ENV API_UPSTREAM=http://edu-api:6003 \
     MAX_UPLOAD_SIZE=210m
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/security-headers.conf /etc/nginx/snippets/security-headers.conf

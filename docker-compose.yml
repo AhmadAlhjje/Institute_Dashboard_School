@@ -3,7 +3,7 @@
 #   docker compose up -d --build
 #
 # Start the backend first: its docker-compose.yml creates the "edu-platform" network, on which
-# this site's Nginx forwards /api to the API (edu-api:6000). Update: git pull, then the same command.
+# this site's Nginx forwards /api to the API (edu-api:6003). Update: git pull, then the same command.
 
 name: edu-owner-dashboard
 
@@ -15,7 +15,7 @@ services:
     ports:
       - '${DASHBOARD_PORT:-6001}:80'
     environment:
-      API_UPSTREAM: ${API_UPSTREAM:-http://edu-api:6000}
+      API_UPSTREAM: ${API_UPSTREAM:-http://edu-api:6003}
     networks: [edu]
     logging:
       driver: json-file
